@@ -1,0 +1,56 @@
+[profile.default]
+# Solidity compiler version
+solc_version = "0.8.24"
+evm_version = "cancun"
+
+# Source and output directories
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+cache_path = "cache"
+remappings = ['@openzeppelin/=lib/openzeppelin-contracts/']
+
+# Compiler settings
+optimizer = true
+optimizer_runs = 1000
+via_ir = true
+
+# Gas reporting
+gas_reports = ["*"]
+gas_reports_ignore = ["test/**/*", "script/**/*"]
+
+# Testing configuration
+verbosity = 2
+fuzz = { runs = 1000 }
+invariant = { runs = 256, depth = 15 }
+
+# Formatting
+line_length = 120
+tab_width = 4
+bracket_spacing = true
+
+# Additional settings
+fs_permissions = [{ access = "read-write", path = "./"}]
+ffi = true
+ast = true
+build_info = true
+extra_output = ["storageLayout"]
+
+[profile.ci]
+fuzz = { runs = 10000 }
+invariant = { runs = 1000, depth = 20 }
+
+[profile.intense]
+fuzz = { runs = 50000 }
+invariant = { runs = 5000, depth = 25 }
+
+# Network configurations
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+mainnet = "${MAINNET_RPC_URL}"
+localhost = "http://127.0.0.1:8545"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+mainnet = { key = "${ETHERSCAN_API_KEY}" }

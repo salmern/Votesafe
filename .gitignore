@@ -1,0 +1,26 @@
+gitignore
+# Foundry
+cache/
+out/
+broadcast/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Dependencies
+node_modules/
+lib/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Security
+.secrets
+private_keys.txt
+audit_reports/
