@@ -14,12 +14,10 @@ contract MockQuadraticVoting {
     mapping(uint256 => uint256) public voteCounts;
     uint256 public nextId;
 
-    function createProposal(
-        string memory title,
-        string memory description,
-        string[] memory options,
-        uint256 duration
-    ) external returns (uint256) {
+    function createProposal(string memory title, string memory description, string[] memory options, uint256 duration)
+        external
+        returns (uint256)
+    {
         uint256 id = ++nextId;
         proposals[id] = Proposal(title, description, options, block.timestamp + duration);
         return id;
@@ -66,6 +64,4 @@ contract MockQuadraticVoting {
         winningOptions[id] = option;
         voteCounts[id] = votes;
     }
-
-    
 }

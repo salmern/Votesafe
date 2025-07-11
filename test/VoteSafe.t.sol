@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import "../src/VoteSafeGovernor.sol";
 import "../src/VoteSafeTimelockController.sol";
-import "../src/MockERC20Votes.sol"; 
-import "../src/MockQuadraticVoting.sol"; 
+import "../src/MockERC20Votes.sol";
+import "../src/MockQuadraticVoting.sol";
 
 contract VoteSafeTest is Test {
     VoteSafeGovernor public governor;
@@ -19,36 +19,35 @@ contract VoteSafeTest is Test {
     address[] public proposers;
     address[] public executors;
 
-   
-function setUp() public {
-    token = new MockERC20Votes("MockToken", "MTK");
-    token.mint(voter, 1000 ether);
+    function setUp() public {
+        token = new MockERC20Votes("MockToken", "MTK");
+        token.mint(voter, 1000 ether);
 
-    proposers = new address[](1);
-    executors = new address[](1);
-    proposers[0] = address(this);
-    executors[0] = address(this);
+        proposers = new address[](1);
+        executors = new address[](1);
+        proposers[0] = address(this);
+        executors[0] = address(this);
 
-    timelock = new VoteSafeTimelockController(2 days, proposers, executors, admin);
-    quadraticVoting = new MockQuadraticVoting();
+        timelock = new VoteSafeTimelockController(2 days, proposers, executors, admin);
+        quadraticVoting = new MockQuadraticVoting();
 
-    governor = new VoteSafeGovernor(
-        IVotes(address(token)),
-        timelock,
-        IQuadraticVoting(address(quadraticVoting)),
-        1000, // 10%
-        500   // 5%
-    );
+        governor = new VoteSafeGovernor(
+            IVotes(address(token)),
+            timelock,
+            IQuadraticVoting(address(quadraticVoting)),
+            1000, // 10%
+            500 // 5%
+        );
 
-    vm.startPrank(admin);
-    timelock.grantRole(timelock.EXECUTOR_ROLE(), address(governor));
-    timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
-    vm.stopPrank();
+        vm.startPrank(admin);
+        timelock.grantRole(timelock.EXECUTOR_ROLE(), address(governor));
+        timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
+        vm.stopPrank();
 
-    token.delegate(voter);
-}
+        token.delegate(voter);
+    }
 
-        function testProposeWithQuadraticVoting() public {
+    function testProposeWithQuadraticVoting() public {
         vm.prank(voter);
         address[] memory targets = new address[](1);
         targets[0] = address(0);
@@ -94,7 +93,7 @@ function setUp() public {
         vm.stopPrank();
     }
 
-        function testProcessQuadraticResult() public {
+    function testProcessQuadraticResult() public {
         vm.prank(voter);
         address[] memory targets = new address[](1);
         targets[0] = address(0);
@@ -111,14 +110,7 @@ function setUp() public {
 
         string memory description = "Vote for the better option";
 
-        uint256 proposalId = governor.propose(
-            targets,
-            values,
-            calldatas,
-            description,
-            options,
-            true
-        );
+        uint256 proposalId = governor.propose(targets, values, calldatas, description, options, true);
         uint256 quadraticId = governor.proposalToQuadraticId(proposalId);
         quadraticVoting.mockSetWinningOption(quadraticId, 1, 90);
 
@@ -132,5 +124,4 @@ function setUp() public {
         assertEq(result.winningOption, 1);
         assertEq(result.totalVotes, 90);
     }
-
 }

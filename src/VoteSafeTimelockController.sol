@@ -32,12 +32,9 @@ contract VoteSafeTimelockController is TimelockController, ReentrancyGuard {
     error EmergencyPauseNotExpired();
     error ArrayLengthMismatch();
 
-    constructor(
-        uint256 minDelay,
-        address[] memory proposers,
-        address[] memory executors,
-        address admin
-    ) TimelockController(minDelay, proposers, executors, admin) {
+    constructor(uint256 minDelay, address[] memory proposers, address[] memory executors, address admin)
+        TimelockController(minDelay, proposers, executors, admin)
+    {
         if (minDelay < MIN_DELAY_BOUND || minDelay > MAX_DELAY_BOUND) {
             revert InvalidDelay();
         }
@@ -75,30 +72,16 @@ contract VoteSafeTimelockController is TimelockController, ReentrancyGuard {
         emit EmergencyUnpaused(msg.sender, block.timestamp);
     }
 
-    function updateDelay(uint256 newDelay)
-        external
-        override
-        onlyRole(TIMELOCK_ADMIN_ROLE)
-    {
+    function updateDelay(uint256 newDelay) external override onlyRole(TIMELOCK_ADMIN_ROLE) {
         if (newDelay < MIN_DELAY_BOUND || newDelay > MAX_DELAY_BOUND) {
             revert InvalidDelay();
         }
 
         uint256 oldDelay = _customMinDelay;
 
-        bytes memory data = abi.encodeWithSelector(
-            this._updateDelayInternal.selector,
-            newDelay
-        );
+        bytes memory data = abi.encodeWithSelector(this._updateDelayInternal.selector, newDelay);
 
-        this.schedule(
-            address(this),
-            0,
-            data,
-            bytes32(0),
-            bytes32(0),
-            getMinDelay()
-        );
+        this.schedule(address(this), 0, data, bytes32(0), bytes32(0), getMinDelay());
 
         emit DelayUpdated(oldDelay, newDelay);
     }
@@ -143,26 +126,10 @@ contract VoteSafeTimelockController is TimelockController, ReentrancyGuard {
             revert ArrayLengthMismatch();
         }
 
-        batchId = keccak256(
-            abi.encode(
-                targets,
-                values,
-                payloads,
-                predecessor,
-                delay,
-                block.timestamp
-            )
-        );
+        batchId = keccak256(abi.encode(targets, values, payloads, predecessor, delay, block.timestamp));
 
         for (uint256 i = 0; i < length; i++) {
-            _scheduleInternal(
-                targets[i],
-                values[i],
-                payloads[i],
-                predecessor,
-                bytes32(0),
-                delay
-            );
+            _scheduleInternal(targets[i], values[i], payloads[i], predecessor, bytes32(0), delay);
         }
 
         emit BatchOperationScheduled(batchId, length);
@@ -180,52 +147,35 @@ contract VoteSafeTimelockController is TimelockController, ReentrancyGuard {
         if (length == 0) revert BatchEmpty();
         if (length > MAX_BATCH_SIZE) revert BatchTooLarge();
 
-        bytes32 batchId = keccak256(
-            abi.encode(
-                targets,
-                values,
-                payloads,
-                predecessor,
-                block.timestamp
-            )
-        );
+        bytes32 batchId = keccak256(abi.encode(targets, values, payloads, predecessor, block.timestamp));
 
         for (uint256 i = 0; i < length; i++) {
-            execute(
-                targets[i],
-                values[i],
-                payloads[i],
-                predecessor,
-                bytes32(0)
-            );
+            execute(targets[i], values[i], payloads[i], predecessor, bytes32(0));
         }
 
         emit BatchOperationExecuted(batchId, length);
     }
 
-    function execute(
-        address target,
-        uint256 value,
-        bytes calldata payload,
-        bytes32 predecessor,
-        bytes32 salt
-    ) public payable override onlyRole(EXECUTOR_ROLE) {
+    function execute(address target, uint256 value, bytes calldata payload, bytes32 predecessor, bytes32 salt)
+        public
+        payable
+        override
+        onlyRole(EXECUTOR_ROLE)
+    {
         if (emergencyPaused) revert EmergencyPauseActive();
         super.execute(target, value, payload, predecessor, salt);
     }
 
     receive() external payable override {}
 
-    function getEmergencyPauseStatus() external view returns (
-        bool isPaused,
-        uint256 pauseTimestamp,
-        uint256 unpauseTime
-    ) {
+    function getEmergencyPauseStatus()
+        external
+        view
+        returns (bool isPaused, uint256 pauseTimestamp, uint256 unpauseTime)
+    {
         isPaused = emergencyPaused;
         pauseTimestamp = emergencyPauseTimestamp;
-        unpauseTime = emergencyPaused
-            ? emergencyPauseTimestamp + EMERGENCY_PAUSE_DURATION
-            : 0;
+        unpauseTime = emergencyPaused ? emergencyPauseTimestamp + EMERGENCY_PAUSE_DURATION : 0;
     }
 
     // function getPendingOperationsCount() external view returns (uint256) {
