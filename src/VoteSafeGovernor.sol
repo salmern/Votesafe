@@ -5,7 +5,8 @@ import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import {GovernorVotesQuorumFraction} from
+    "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
@@ -104,7 +105,10 @@ contract VoteSafeGovernor is
         emit EmergencyUnpaused(msg.sender);
     }
 
-    function updateProposalThresholds(uint256 newThreshold, uint256 newEmergencyThreshold) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateProposalThresholds(uint256 newThreshold, uint256 newEmergencyThreshold)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         if (newThreshold > 10000 || newEmergencyThreshold >= newThreshold) revert InvalidProposalThreshold();
         emit ProposalThresholdUpdated(proposalThresholdBPS, newThreshold);
         proposalThresholdBPS = newThreshold;
