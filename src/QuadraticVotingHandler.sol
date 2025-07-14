@@ -2,12 +2,9 @@
 pragma solidity ^0.8.24;
 
 interface IQuadraticVoting {
-    function createProposal(
-        string memory title,
-        string memory description,
-        string[] memory options,
-        uint256 duration
-    ) external returns (uint256);
+    function createProposal(string memory title, string memory description, string[] memory options, uint256 duration)
+        external
+        returns (uint256);
 
     function getProposal(uint256 proposalId)
         external
@@ -36,8 +33,6 @@ contract QuadraticVotingHandler {
         string[] options;
         bool useQuadraticVoting;
     }
-
-     
 
     struct QuadraticResult {
         uint256 quadraticProposalId;
@@ -76,11 +71,11 @@ contract QuadraticVotingHandler {
         quadraticVoting = _quadraticVoting;
     }
 
-    function  createQuadraticProposal(
-        uint256 proposalId,
-        string memory description,
-        string[] memory options
-    ) external onlyGovernor virtual {
+    function createQuadraticProposal(uint256 proposalId, string memory description, string[] memory options)
+        external
+        virtual
+        onlyGovernor
+    {
         string memory title = _extractTitle(description);
         uint256 quadraticProposalId = quadraticVoting.createProposal(title, description, options, 7 days);
 
@@ -105,12 +100,13 @@ contract QuadraticVotingHandler {
             revert ProposalAlreadyProcessed();
         }
 
-        (, , , , , uint256 endTime, , , , , ) = quadraticVoting.getProposal(proposalToQuadraticId[proposalId]);
+        (,,,,, uint256 endTime,,,,,) = quadraticVoting.getProposal(proposalToQuadraticId[proposalId]);
         if (block.timestamp < endTime) {
             revert QuadraticResultNotReady();
         }
 
-        (uint256 winningOption, uint256 totalVotes) = quadraticVoting.getWinningOption(proposalToQuadraticId[proposalId]);
+        (uint256 winningOption, uint256 totalVotes) =
+            quadraticVoting.getWinningOption(proposalToQuadraticId[proposalId]);
 
         quadraticResults[proposalId] = QuadraticResult({
             quadraticProposalId: proposalToQuadraticId[proposalId],
@@ -151,4 +147,4 @@ contract QuadraticVotingHandler {
     function getQuadraticResult(uint256 proposalId) external view virtual returns (QuadraticResult memory) {
         return quadraticResults[proposalId];
     }
-} 
+}

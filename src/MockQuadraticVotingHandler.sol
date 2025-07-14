@@ -4,16 +4,13 @@ pragma solidity ^0.8.24;
 import "../src/QuadraticVotingHandler.sol";
 
 contract MockQuadraticVotingHandler is QuadraticVotingHandler {
-    constructor(
-        address _governor
-    ) QuadraticVotingHandler(_governor, IQuadraticVoting(address(0))) {}
+    constructor(address _governor) QuadraticVotingHandler(_governor, IQuadraticVoting(address(0))) {}
 
     // This is the function the governor actually calls
-    function createQuadraticProposal(
-        uint256 proposalId,
-        string memory  /* description */,
-        string[] memory options
-    ) external override {
+    function createQuadraticProposal(uint256 proposalId, string memory, /* description */ string[] memory options)
+        external
+        override
+    {
         // Store the proposal metadata
         proposalMetadata[proposalId] = ProposalMetadata({
             createdAt: block.timestamp,
@@ -29,10 +26,7 @@ contract MockQuadraticVotingHandler is QuadraticVotingHandler {
     }
 
     //mock function to simulate proposal creation
-    function mockCreateProposal(
-        uint256 proposalId,
-        string[] memory options
-    ) external {
+    function mockCreateProposal(uint256 proposalId, string[] memory options) external {
         proposalMetadata[proposalId] = ProposalMetadata({
             createdAt: block.timestamp,
             quadraticVotingId: proposalId + 1000,
@@ -43,11 +37,7 @@ contract MockQuadraticVotingHandler is QuadraticVotingHandler {
         proposalToQuadraticId[proposalId] = proposalId + 1000;
     }
 
-    function mockSetResult(
-        uint256 proposalId,
-        uint256 winningOption,
-        uint256 totalVotes
-    ) external {
+    function mockSetResult(uint256 proposalId, uint256 winningOption, uint256 totalVotes) external {
         quadraticResults[proposalId] = QuadraticResult({
             quadraticProposalId: proposalToQuadraticId[proposalId],
             winningOption: winningOption,
@@ -56,17 +46,12 @@ contract MockQuadraticVotingHandler is QuadraticVotingHandler {
         });
     }
 
-   
-    function getProposalOptions(
-        uint256 proposalId
-    ) external view returns (string[] memory) {
+    function getProposalOptions(uint256 proposalId) external view returns (string[] memory) {
         return proposalMetadata[proposalId].options;
     }
 
     // Mock implementation for any other required functions from parent
-    function getQuadraticResult(
-        uint256 proposalId
-    ) external view override returns (QuadraticResult memory) {
+    function getQuadraticResult(uint256 proposalId) external view override returns (QuadraticResult memory) {
         return quadraticResults[proposalId];
     }
 }
