@@ -24,3 +24,7 @@ Thumbs.db
 .secrets
 private_keys.txt
 audit_reports/
+
+
+*.sol.json
+foundry.toml.lock

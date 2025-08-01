@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../src/QuadraticVotingHandler.sol";
+import "src/voting/QuadraticVotingHandler.sol";
 
 contract MockQuadraticVotingHandler is QuadraticVotingHandler {
     constructor(address _governor) QuadraticVotingHandler(_governor, IQuadraticVoting(address(0))) {}

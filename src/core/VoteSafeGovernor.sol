@@ -12,7 +12,9 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
-import {QuadraticVotingHandler} from "./QuadraticVotingHandler.sol";
+import {QuadraticVoting} from "src/voting/QuadraticVoting.sol";
+
+import {QuadraticVotingHandler} from "src/voting/QuadraticVotingHandler.sol";
 
 contract VoteSafeGovernor is
     Governor,

@@ -309,19 +309,44 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      * @return lastMintTimestamp The timestamp of the last mint
      * @return owner The owner of the contract
      */
+    // function getTokenInfo()
+    //     external
+    //     view
+    //     returns (
+    //         string memory name,
+    //         string memory symbol,
+    //         uint8 decimals,
+    //         uint256 totalSupply,
+    //         uint256 maxSupply,
+    //         uint256 lastMintTimestamp,
+    //         address owner
+    //     )
+    // {
+    //     return (name, symbol, decimals, totalSupply, MAX_SUPPLY, lastMintTime, owner);
+    // }
+
     function getTokenInfo()
-        external
-        view
-        returns (
-            string memory name,
-            string memory symbol,
-            uint8 decimals,
-            uint256 totalSupply,
-            uint256 maxSupply,
-            uint256 lastMintTimestamp,
-            address owner
-        )
-    {
-        return (name, symbol, decimals, totalSupply, MAX_SUPPLY, lastMintTime, owner);
-    }
+    external
+    view
+    returns (
+        string memory,
+        string memory,
+        uint8,
+        uint256,
+        uint256,
+        uint256,
+        address
+    )
+{
+    return (
+        name(),          // ✅ call function
+        symbol(),        // ✅ call function
+        decimals(),      // ✅ call function
+        totalSupply(),   // ✅ call function
+        MAX_SUPPLY,
+        lastMintTime,
+        owner()          // ✅ call function from Ownable
+    );
+}
+
 }
