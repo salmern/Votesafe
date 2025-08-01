@@ -1,32 +1,40 @@
 # VoteSafe 🗳️
 
-VoteSafe is a decentralized DAO voting protocol built with:
+**VoteSafe** is a decentralized DAO voting protocol designed for **fairer, safer, and more inclusive governance**. It leverages:
 
-- 🧠 Quadratic voting
-- 🧰 Timelock-controlled execution
-- 🌐 Snapshot.js integration
-- 🗂️ Proposal storage on IPFS
-- ⚙️ Foundry for testing
+- 🧠 Quadratic voting to prevent whale dominance
+- 🕒 Timelock-controlled execution for security and transparency
+- 🌐 Snapshot.js for off-chain vote collection
+- 🗂️ IPFS for decentralized proposal storage
+- ⚙️ Foundry for robust testing
 
-> Designed to make DAO governance fairer, safer, and more responsive.
+---
 
-## Tech Stack
+## 🧰 Tech Stack
 
-- Solidity + Foundry
-- Snapshot.js
-- React
-- IPFS
-- Sepolia Testnet
+- **Solidity** (Smart contracts)
+- **Foundry** (Development & testing)
+- **Snapshot.js** (Off-chain voting)
+- **React** (Frontend dashboard - coming soon)
+- **IPFS** (Proposal content storage)
+- **Sepolia Testnet** (Deployment & testing)
 
-## Features
+---
 
-- ERC20Votes-based governance token
-- Emergency proposal support
-- Role-based timelock controller
-- Off-chain voting + on-chain execution
-- Quadratic vote tallying
+## ✨ Features
 
-## Getting Started
+- 🪙 `ERC20Votes`-based governance token
+- 📦 Proposals stored off-chain on IPFS
+- ✅ Off-chain quadratic voting, on-chain execution
+- 🚨 Emergency proposal mechanism
+- 🔐 Role-based TimelockController
+- 🧪 Comprehensive tests using Foundry
+
+---
+
+## 🛠️ Getting Started
+
+Clone and install dependencies:
 
 ```bash
 forge install
