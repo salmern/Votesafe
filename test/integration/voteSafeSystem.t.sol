@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LICENSED
 pragma solidity ^0.8.24;
+
 import "forge-std/Test.sol";
 import "src/core/VoteSafeGovernor.sol";
 import "src/core/VoteSafeTimelockController.sol";
@@ -7,7 +8,6 @@ import "src/voting/QuadraticVotingHandler.sol";
 import "src/voting/QuadraticVoting.sol";
 import "src/mocks/MockERC20Votes.sol";
 import "src/mocks/MockQuadraticVotingHandler.sol";
-
 
 contract VoteSafeTest is Test {
     VoteSafeGovernor public governor;
@@ -40,12 +40,7 @@ contract VoteSafeTest is Test {
         executors[0] = address(this);
 
         // Deploy timelock
-        timelock = new VoteSafeTimelockController(
-            2 days,
-            proposers,
-            executors,
-            admin
-        );
+        timelock = new VoteSafeTimelockController(2 days, proposers, executors, admin);
 
         // Deploy governor first with placeholder handler
         vm.startPrank(admin);
@@ -66,13 +61,7 @@ contract VoteSafeTest is Test {
 
         // Alternative: Redeploy governor with correct handler
         vm.startPrank(admin);
-        governor = new VoteSafeGovernor(
-            IVotes(address(token)),
-            timelock,
-            address(handler),
-            1000,
-            500
-        );
+        governor = new VoteSafeGovernor(IVotes(address(token)), timelock, address(handler), 1000, 500);
         vm.stopPrank();
 
         // Grant roles
@@ -104,11 +93,7 @@ contract VoteSafeTest is Test {
         // Set up a simple call
         targets[0] = address(token);
         values[0] = 0;
-        calldatas[0] = abi.encodeWithSignature(
-            "transfer(address,uint256)",
-            voter,
-            1
-        );
+        calldatas[0] = abi.encodeWithSignature("transfer(address,uint256)", voter, 1);
 
         string[] memory options = new string[](2);
         options[0] = "Yes";
@@ -123,10 +108,7 @@ contract VoteSafeTest is Test {
         console.log("Voter power:", voterPower);
         console.log("Required threshold:", requiredThreshold);
 
-        assertTrue(
-            voterPower >= requiredThreshold,
-            "Voter doesn't have enough voting power"
-        );
+        assertTrue(voterPower >= requiredThreshold, "Voter doesn't have enough voting power");
 
         uint256 proposalId = governor.propose(
             targets,
@@ -153,11 +135,7 @@ contract VoteSafeTest is Test {
 
         targets[0] = address(token);
         values[0] = 0;
-        calldatas[0] = abi.encodeWithSignature(
-            "transfer(address,uint256)",
-            voter,
-            1
-        );
+        calldatas[0] = abi.encodeWithSignature("transfer(address,uint256)", voter, 1);
 
         string[] memory options = new string[](0); // Empty options for non-QV
         string memory description = "Regular proposal without quadratic voting";
@@ -216,21 +194,11 @@ contract VoteSafeTest is Test {
         options[0] = "Yes";
         options[1] = "No";
 
-        string
-            memory description = "Should fail due to insufficient voting power";
+        string memory description = "Should fail due to insufficient voting power";
 
         // This should revert with InsufficientProposalThreshold
-        vm.expectRevert(
-            abi.encodeWithSignature("InsufficientProposalThreshold()")
-        );
-        governor.propose(
-            targets,
-            values,
-            calldatas,
-            description,
-            options,
-            true
-        );
+        vm.expectRevert(abi.encodeWithSignature("InsufficientProposalThreshold()"));
+        governor.propose(targets, values, calldatas, description, options, true);
 
         vm.stopPrank();
     }
