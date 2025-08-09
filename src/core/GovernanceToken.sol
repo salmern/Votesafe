@@ -219,15 +219,15 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     function transfer(address to, uint256 amount) public override returns (bool) {
         // Check if recipient needs auto-delegation BEFORE transfer
         bool needsAutoDelegation = (delegates(to) == address(0) && balanceOf(to) == 0);
-        
+
         // Perform the transfer
         bool success = super.transfer(to, amount);
-        
+
         // Auto-delegate only for new accounts (had zero balance before transfer)
         if (success && needsAutoDelegation) {
             _delegate(to, to);
         }
-        
+
         return success;
     }
 
@@ -237,15 +237,15 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         // Check if recipient needs auto-delegation BEFORE transfer
         bool needsAutoDelegation = (delegates(to) == address(0) && balanceOf(to) == 0);
-        
+
         // Perform the transfer using parent implementation
         bool success = super.transferFrom(from, to, amount);
-        
+
         // Auto-delegate only for new accounts (had zero balance before transfer)
         if (success && needsAutoDelegation) {
             _delegate(to, to);
         }
-        
+
         return success;
     }
 

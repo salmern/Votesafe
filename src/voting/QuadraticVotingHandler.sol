@@ -2,16 +2,11 @@
 pragma solidity ^0.8.24;
 
 interface IQuadraticVoting {
-    function createProposal(
-        string memory title,
-        string memory description,
-        string[] memory options,
-        uint256 duration
-    ) external returns (uint256);
+    function createProposal(string memory title, string memory description, string[] memory options, uint256 duration)
+        external
+        returns (uint256);
 
-    function getProposal(
-        uint256 proposalId
-    )
+    function getProposal(uint256 proposalId)
         external
         view
         returns (
@@ -28,9 +23,7 @@ interface IQuadraticVoting {
             bool executed
         );
 
-    function getWinningOption(
-        uint256 proposalId
-    ) external view returns (uint256 winningOption, uint256 votes);
+    function getWinningOption(uint256 proposalId) external view returns (uint256 winningOption, uint256 votes);
 }
 
 /**
@@ -78,16 +71,11 @@ contract QuadraticVotingHandler {
 
     /// @notice Events for external monitoring and integration
     event ProposalCreatedWithQuadratic(
-        uint256 indexed proposalId,
-        uint256 indexed quadraticProposalId,
-        address indexed proposer
+        uint256 indexed proposalId, uint256 indexed quadraticProposalId, address indexed proposer
     );
 
     event QuadraticResultProcessed(
-        uint256 indexed proposalId,
-        uint256 indexed quadraticProposalId,
-        uint256 winningOption,
-        uint256 totalVotes
+        uint256 indexed proposalId, uint256 indexed quadraticProposalId, uint256 winningOption, uint256 totalVotes
     );
 
     /// @notice Custom errors for gas efficiency
@@ -119,11 +107,11 @@ contract QuadraticVotingHandler {
      * @param description Proposal description
      * @param options Array of voting options
      */
-    function createQuadraticProposal(
-        uint256 proposalId,
-        string memory description,
-        string[] memory options
-    ) external virtual onlyGovernor {
+    function createQuadraticProposal(uint256 proposalId, string memory description, string[] memory options)
+        external
+        virtual
+        onlyGovernor
+    {
         // Validate input parameters
         if (bytes(description).length == 0) revert InvalidProposalData();
         if (options.length < 2) revert InvalidProposalData();
@@ -133,12 +121,7 @@ contract QuadraticVotingHandler {
         string memory title = _extractTitle(description);
 
         // Create quadratic voting proposal (7 days duration)
-        uint256 quadraticProposalId = quadraticVoting.createProposal(
-            title,
-            description,
-            options,
-            7 days
-        );
+        uint256 quadraticProposalId = quadraticVoting.createProposal(title, description, options, 7 days);
 
         // Store metadata with gas-optimized struct packing
         proposalMetadata[proposalId] = ProposalMetadata({
@@ -175,17 +158,14 @@ contract QuadraticVotingHandler {
         }
 
         // Get proposal details to check if voting period has ended
-        (, , , , , uint256 endTime, , , , , ) = quadraticVoting.getProposal(
-            quadraticProposalId
-        );
+        (,,,,, uint256 endTime,,,,,) = quadraticVoting.getProposal(quadraticProposalId);
 
         if (block.timestamp < endTime) {
             revert QuadraticResultNotReady();
         }
 
         // Get winning option and total votes
-        (uint256 winningOption, uint256 totalVotes) = quadraticVoting
-            .getWinningOption(quadraticProposalId);
+        (uint256 winningOption, uint256 totalVotes) = quadraticVoting.getWinningOption(quadraticProposalId);
 
         // Store results
         quadraticResults[proposalId] = QuadraticResult({
@@ -195,12 +175,7 @@ contract QuadraticVotingHandler {
             processed: true
         });
 
-        emit QuadraticResultProcessed(
-            proposalId,
-            quadraticProposalId,
-            winningOption,
-            totalVotes
-        );
+        emit QuadraticResultProcessed(proposalId, quadraticProposalId, winningOption, totalVotes);
     }
 
     /**
@@ -213,9 +188,7 @@ contract QuadraticVotingHandler {
      * - Minimizes memory allocations
      * - Early break on newline detection
      */
-    function _extractTitle(
-        string memory description
-    ) internal pure returns (string memory) {
+    function _extractTitle(string memory description) internal pure returns (string memory) {
         bytes memory descBytes = bytes(description);
         if (descBytes.length == 0) return "Untitled Proposal";
 
@@ -224,11 +197,7 @@ contract QuadraticVotingHandler {
         // Gas-optimized assembly version for finding newlines
         assembly {
             let dataPtr := add(descBytes, 0x20)
-            for {
-                let i := 0
-            } lt(i, end) {
-                i := add(i, 1)
-            } {
+            for { let i := 0 } lt(i, end) { i := add(i, 1) } {
                 let b := byte(0, mload(add(dataPtr, i)))
                 // Check for newline (0x0A) or carriage return (0x0D)
                 if or(eq(b, 0x0A), eq(b, 0x0D)) {
@@ -248,11 +217,7 @@ contract QuadraticVotingHandler {
 
             // Copy in 32-byte chunks when possible
             let chunks := div(end, 32)
-            for {
-                let i := 0
-            } lt(i, chunks) {
-                i := add(i, 1)
-            } {
+            for { let i := 0 } lt(i, chunks) { i := add(i, 1) } {
                 let offset := mul(i, 32)
                 mstore(add(dst, offset), mload(add(src, offset)))
             }
@@ -275,9 +240,7 @@ contract QuadraticVotingHandler {
      * @param proposalId Governor proposal ID
      * @return ProposalMetadata struct
      */
-    function getProposalMetadata(
-        uint256 proposalId
-    ) external view returns (ProposalMetadata memory) {
+    function getProposalMetadata(uint256 proposalId) external view returns (ProposalMetadata memory) {
         return proposalMetadata[proposalId];
     }
 
@@ -286,9 +249,7 @@ contract QuadraticVotingHandler {
      * @param proposalId Governor proposal ID
      * @return QuadraticResult struct
      */
-    function getQuadraticResult(
-        uint256 proposalId
-    ) external view virtual returns (QuadraticResult memory) {
+    function getQuadraticResult(uint256 proposalId) external view virtual returns (QuadraticResult memory) {
         return quadraticResults[proposalId];
     }
 
@@ -297,9 +258,7 @@ contract QuadraticVotingHandler {
      * @param proposalId Governor proposal ID
      * @return bool indicating if quadratic voting exists
      */
-    function hasQuadraticVoting(
-        uint256 proposalId
-    ) external view returns (bool) {
+    function hasQuadraticVoting(uint256 proposalId) external view returns (bool) {
         return proposalToQuadraticId[proposalId] != 0;
     }
 
@@ -308,9 +267,7 @@ contract QuadraticVotingHandler {
      * @param proposalId Governor proposal ID
      * @return Quadratic voting proposal ID (0 if none exists)
      */
-    function getQuadraticVotingId(
-        uint256 proposalId
-    ) external view returns (uint256) {
+    function getQuadraticVotingId(uint256 proposalId) external view returns (uint256) {
         return proposalToQuadraticId[proposalId];
     }
 
@@ -319,15 +276,11 @@ contract QuadraticVotingHandler {
      * @param proposalId Governor proposal ID
      * @return bool indicating if results are ready
      */
-    function isQuadraticVotingComplete(
-        uint256 proposalId
-    ) external view returns (bool) {
+    function isQuadraticVotingComplete(uint256 proposalId) external view returns (bool) {
         uint256 quadraticProposalId = proposalToQuadraticId[proposalId];
         if (quadraticProposalId == 0) return false;
 
-        (, , , , , uint256 endTime, , , , , ) = quadraticVoting.getProposal(
-            quadraticProposalId
-        );
+        (,,,,, uint256 endTime,,,,,) = quadraticVoting.getProposal(quadraticProposalId);
 
         return block.timestamp >= endTime;
     }
@@ -337,17 +290,16 @@ contract QuadraticVotingHandler {
      * @param proposalIds Array of governor proposal IDs
      * @return processedCount Number of results successfully processed
      */
-    function batchProcessQuadraticResults(
-        uint256[] memory proposalIds
-    ) external onlyGovernor returns (uint256 processedCount) {
-        for (uint256 i = 0; i < proposalIds.length; ) {
+    function batchProcessQuadraticResults(uint256[] memory proposalIds)
+        external
+        onlyGovernor
+        returns (uint256 processedCount)
+    {
+        for (uint256 i = 0; i < proposalIds.length;) {
             uint256 proposalId = proposalIds[i];
 
             // Skip if no quadratic voting or already processed
-            if (
-                proposalToQuadraticId[proposalId] == 0 ||
-                quadraticResults[proposalId].processed
-            ) {
+            if (proposalToQuadraticId[proposalId] == 0 || quadraticResults[proposalId].processed) {
                 unchecked {
                     ++i;
                 }
@@ -355,9 +307,7 @@ contract QuadraticVotingHandler {
             }
 
             // Check if voting period has ended
-            (, , , , , uint256 endTime, , , , , ) = quadraticVoting.getProposal(
-                proposalToQuadraticId[proposalId]
-            );
+            (,,,,, uint256 endTime,,,,,) = quadraticVoting.getProposal(proposalToQuadraticId[proposalId]);
 
             if (block.timestamp < endTime) {
                 unchecked {
@@ -367,8 +317,8 @@ contract QuadraticVotingHandler {
             }
 
             // Process results
-            (uint256 winningOption, uint256 totalVotes) = quadraticVoting
-                .getWinningOption(proposalToQuadraticId[proposalId]);
+            (uint256 winningOption, uint256 totalVotes) =
+                quadraticVoting.getWinningOption(proposalToQuadraticId[proposalId]);
 
             quadraticResults[proposalId] = QuadraticResult({
                 quadraticProposalId: proposalToQuadraticId[proposalId],
@@ -377,12 +327,7 @@ contract QuadraticVotingHandler {
                 processed: true
             });
 
-            emit QuadraticResultProcessed(
-                proposalId,
-                proposalToQuadraticId[proposalId],
-                winningOption,
-                totalVotes
-            );
+            emit QuadraticResultProcessed(proposalId, proposalToQuadraticId[proposalId], winningOption, totalVotes);
 
             unchecked {
                 ++processedCount;

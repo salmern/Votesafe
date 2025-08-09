@@ -42,16 +42,10 @@ contract VoteSafeTest is Test {
         // Redeploy handler with correct governor address
         handler = new MockQuadraticVotingHandler(address(0));
 
-        timelock = new VoteSafeTimelockController(
-            2 days,
-            proposers,
-            executors,
-            admin
-        );
+        timelock = new VoteSafeTimelockController(2 days, proposers, executors, admin);
 
         // Deploy handler with temporary address
         // handler = new MockQuadraticVotingHandler(address(this));
-
 
         // Deploy governor
         vm.startPrank(admin);
@@ -82,11 +76,7 @@ contract VoteSafeTest is Test {
 
         // Final verification
         assertTrue(governor.hasRole(adminRole, admin), "Admin role not set");
-        assertEq(
-            address(governor.qvHandler()),
-            address(handler),
-            "Handler not set correctly"
-        );
+        assertEq(address(governor.qvHandler()), address(handler), "Handler not set correctly");
     }
 
     function testProposeWithQuadraticVoting() public {
@@ -105,24 +95,13 @@ contract VoteSafeTest is Test {
         uint256[] memory values = new uint256[](1);
         bytes[] memory calldatas = new bytes[](1);
         targets[0] = address(token);
-        calldatas[0] = abi.encodeWithSignature(
-            "transfer(address,uint256)",
-            voter,
-            1
-        );
+        calldatas[0] = abi.encodeWithSignature("transfer(address,uint256)", voter, 1);
 
         string[] memory options = new string[](2);
         options[0] = "Yes";
         options[1] = "No";
 
-        uint256 proposalId = governor.propose(
-            targets,
-            values,
-            calldatas,
-            "QV Proposal",
-            options,
-            true
-        );
+        uint256 proposalId = governor.propose(targets, values, calldatas, "QV Proposal", options, true);
 
         assertGt(proposalId, 0, "Proposal creation failed");
         vm.stopPrank();
@@ -132,15 +111,12 @@ contract VoteSafeTest is Test {
         console.log("Current block:", block.number);
         console.log("Token balance:", token.balanceOf(voter));
         console.log("Current votes:", token.getVotes(voter));
-        console.log(
-            "Past votes (prev block):",
-            token.getPastVotes(voter, block.number - 1)
-        );
+        console.log("Past votes (prev block):", token.getPastVotes(voter, block.number - 1));
         console.log("Proposal threshold:", governor.proposalThreshold());
         console.log("Handler address:", address(governor.qvHandler()));
     }
 
-       function testProposeWithoutQuadraticVoting() public {
+    function testProposeWithoutQuadraticVoting() public {
         vm.roll(block.number + 1);
 
         vm.startPrank(voter);

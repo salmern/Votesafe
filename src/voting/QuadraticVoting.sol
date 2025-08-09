@@ -54,30 +54,25 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Optimized voting proposal structure (saves ~3 storage slots per proposal)
     struct Proposal {
         // Slot 0: Tightly packed (32 bytes)
-        address proposer;              // 20 bytes
-        uint40 startTime;              // 5 bytes  
-        uint40 endTime;                // 5 bytes
-        bool executed;                 // 1 byte
+        address proposer; // 20 bytes
+        uint40 startTime; // 5 bytes
+        uint40 endTime; // 5 bytes
+        bool executed; // 1 byte
         // 1 byte remaining in slot 0
-        
+
         // Slot 1
-        uint256 id;                    // 32 bytes
-        
+        uint256 id; // 32 bytes
         // Slot 2
-        uint256 totalTokensAllocated;  // 32 bytes
-        
+        uint256 totalTokensAllocated; // 32 bytes
         // Slot 3
-        uint256 totalVotingPower;      // 32 bytes
-        
+        uint256 totalVotingPower; // 32 bytes
         // Slot 4
-        bytes32 snapshotHash;          // 32 bytes - For off-chain voting verification
-        
+        bytes32 snapshotHash; // 32 bytes - For off-chain voting verification
         // Dynamic arrays (separate slots)
         string title;
         string description;
         string[] options;
-        uint256[] optionVotes;         // Array of votes for each option
-        
+        uint256[] optionVotes; // Array of votes for each option
         // Mappings (separate storage)
         mapping(address => UserVote) userVotes;
         mapping(address => uint256) tokenCommitments;
@@ -86,18 +81,18 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice User vote structure (optimized packing)
     struct UserVote {
-        uint256 tokensAllocated;       // 32 bytes - Slot 0
-        uint256 votingPower;           // 32 bytes - Slot 1
-        uint256 timestamp;             // 32 bytes - Slot 2
-        uint256[] optionWeights;       // Dynamic array - Separate slots
-        bool hasVoted;                 // 1 byte - Slot 3 (31 bytes remaining)
+        uint256 tokensAllocated; // 32 bytes - Slot 0
+        uint256 votingPower; // 32 bytes - Slot 1
+        uint256 timestamp; // 32 bytes - Slot 2
+        uint256[] optionWeights; // Dynamic array - Separate slots
+        bool hasVoted; // 1 byte - Slot 3 (31 bytes remaining)
     }
 
     /// @notice Token commitment structure (optimized)
     struct TokenCommitment {
-        uint256 amount;                // 32 bytes - Slot 0
-        uint256 timestamp;             // 32 bytes - Slot 1  
-        uint256 proposalId;            // 32 bytes - Slot 2
+        uint256 amount; // 32 bytes - Slot 0
+        uint256 timestamp; // 32 bytes - Slot 1
+        uint256 proposalId; // 32 bytes - Slot 2
     }
 
     /// @notice Mapping of proposals
@@ -119,12 +114,7 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         string[] options
     );
 
-    event TokensCommitted(
-        uint256 indexed proposalId,
-        address indexed user,
-        uint256 amount,
-        uint256 timestamp
-    );
+    event TokensCommitted(uint256 indexed proposalId, address indexed user, uint256 amount, uint256 timestamp);
 
     event VoteCast(
         uint256 indexed proposalId,
@@ -134,30 +124,13 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         uint256[] optionWeights
     );
 
-    event OffChainVoteVerified(
-        uint256 indexed proposalId,
-        bytes32 snapshotHash,
-        uint256 totalVotes
-    );
+    event OffChainVoteVerified(uint256 indexed proposalId, bytes32 snapshotHash, uint256 totalVotes);
 
-    event TokensWithdrawn(
-        uint256 indexed proposalId,
-        address indexed user,
-        uint256 amount
-    );
+    event TokensWithdrawn(uint256 indexed proposalId, address indexed user, uint256 amount);
 
-    event ProposalExecuted(
-        uint256 indexed proposalId,
-        uint256 winningOption,
-        uint256 totalVotes
-    );
+    event ProposalExecuted(uint256 indexed proposalId, uint256 winningOption, uint256 totalVotes);
 
-    event ParametersUpdated(
-        uint256 oldMinTokens,
-        uint256 newMinTokens,
-        uint256 oldMaxTokens,
-        uint256 newMaxTokens
-    );
+    event ParametersUpdated(uint256 oldMinTokens, uint256 newMinTokens, uint256 oldMaxTokens, uint256 newMaxTokens);
 
     /// @notice Custom errors
     error InvalidProposal();
@@ -185,11 +158,7 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
      * @param _minTokensRequired Minimum tokens required to participate
      * @param _maxTokensPerVote Maximum tokens per vote
      */
-    constructor(
-        address _governanceToken,
-        uint256 _minTokensRequired,
-        uint256 _maxTokensPerVote
-    ) {
+    constructor(address _governanceToken, uint256 _minTokensRequired, uint256 _maxTokensPerVote) {
         if (_governanceToken == address(0)) revert ZeroAddress();
         if (_minTokensRequired == 0) revert InvalidParameters();
         if (_maxTokensPerVote <= _minTokensRequired) revert InvalidParameters();
@@ -212,12 +181,10 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
      * @param options Array of voting options
      * @param duration Voting duration in seconds
      */
-    function createProposal(
-        string memory title,
-        string memory description,
-        string[] memory options,
-        uint256 duration
-    ) external onlyRole(PROPOSER_ROLE) {
+    function createProposal(string memory title, string memory description, string[] memory options, uint256 duration)
+        external
+        onlyRole(PROPOSER_ROLE)
+    {
         // Input validation
         if (bytes(title).length == 0) revert InvalidParameters();
         if (options.length < 2) revert InvalidParameters();
@@ -241,21 +208,14 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         proposal.endTime = endTime;
         proposal.executed = false;
         proposal.id = proposalId;
-        
+
         // Set other fields
         proposal.title = title;
         proposal.description = description;
         proposal.options = options;
         proposal.optionVotes = new uint256[](options.length);
 
-        emit ProposalCreated(
-            proposalId,
-            title,
-            msg.sender,
-            startTime,
-            endTime,
-            options
-        );
+        emit ProposalCreated(proposalId, title, msg.sender, startTime, endTime, options);
     }
 
     /**
@@ -278,11 +238,8 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         governanceToken.transferFrom(msg.sender, address(this), amount);
 
         // Record commitment with optimized storage
-        tokenCommitments[msg.sender][proposalId] = TokenCommitment({
-            amount: amount,
-            timestamp: block.timestamp,
-            proposalId: proposalId
-        });
+        tokenCommitments[msg.sender][proposalId] =
+            TokenCommitment({amount: amount, timestamp: block.timestamp, proposalId: proposalId});
 
         proposal.tokenCommitments[msg.sender] = amount;
         proposal.commitmentTimestamp[msg.sender] = block.timestamp;
@@ -296,11 +253,11 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
      * @param tokensToAllocate Tokens to allocate for voting
      * @param optionWeights Array of weights for each option (must sum to 100)
      */
-    function vote(
-        uint256 proposalId,
-        uint256 tokensToAllocate,
-        uint256[] memory optionWeights
-    ) external nonReentrant whenNotPaused {
+    function vote(uint256 proposalId, uint256 tokensToAllocate, uint256[] memory optionWeights)
+        external
+        nonReentrant
+        whenNotPaused
+    {
         if (proposalId >= proposalCount) revert InvalidProposal();
 
         Proposal storage proposal = proposals[proposalId];
@@ -323,9 +280,11 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         if (optionWeights.length != proposal.options.length) revert InvalidOptionWeights();
 
         uint256 totalWeight = 0;
-        for (uint256 i = 0; i < optionWeights.length; ) {
+        for (uint256 i = 0; i < optionWeights.length;) {
             totalWeight += optionWeights[i];
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         if (totalWeight != 100) revert InvalidVoteWeights();
 
@@ -346,11 +305,13 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         proposal.totalVotingPower += votingPower;
 
         // Distribute voting power across options (gas optimized loop)
-        for (uint256 i = 0; i < optionWeights.length; ) {
+        for (uint256 i = 0; i < optionWeights.length;) {
             if (optionWeights[i] > 0) {
                 proposal.optionVotes[i] += (votingPower * optionWeights[i]) / 100;
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         emit VoteCast(proposalId, msg.sender, tokensToAllocate, votingPower, optionWeights);
@@ -374,15 +335,8 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         if (proposalId >= proposalCount) revert InvalidProposal();
 
         // Create message hash for signature verification
-        bytes32 messageHash = keccak256(
-            abi.encodePacked(
-                proposalId,
-                voter,
-                tokensToAllocate,
-                optionWeights,
-                block.chainid
-            )
-        );
+        bytes32 messageHash =
+            keccak256(abi.encodePacked(proposalId, voter, tokensToAllocate, optionWeights, block.chainid));
 
         // Verify EIP-191 signature
         bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
@@ -400,21 +354,20 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @dev Internal function to process votes (DRY principle)
      */
-    function _processVote(
-        uint256 proposalId,
-        address voter,
-        uint256 tokensToAllocate,
-        uint256[] memory optionWeights
-    ) internal {
+    function _processVote(uint256 proposalId, address voter, uint256 tokensToAllocate, uint256[] memory optionWeights)
+        internal
+    {
         Proposal storage proposal = proposals[proposalId];
 
         if (proposal.userVotes[voter].hasVoted) revert AlreadyVoted();
 
         // Validate option weights
         uint256 totalWeight = 0;
-        for (uint256 i = 0; i < optionWeights.length; ) {
+        for (uint256 i = 0; i < optionWeights.length;) {
             totalWeight += optionWeights[i];
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         if (totalWeight != 100) revert InvalidVoteWeights();
 
@@ -435,11 +388,13 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         proposal.totalVotingPower += votingPower;
 
         // Distribute voting power across options
-        for (uint256 i = 0; i < optionWeights.length; ) {
+        for (uint256 i = 0; i < optionWeights.length;) {
             if (optionWeights[i] > 0) {
                 proposal.optionVotes[i] += (votingPower * optionWeights[i]) / 100;
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         emit VoteCast(proposalId, voter, tokensToAllocate, votingPower, optionWeights);
@@ -460,12 +415,14 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         uint256 winningOption = 0;
         uint256 maxVotes = proposal.optionVotes[0];
 
-        for (uint256 i = 1; i < proposal.optionVotes.length; ) {
+        for (uint256 i = 1; i < proposal.optionVotes.length;) {
             if (proposal.optionVotes[i] > maxVotes) {
                 maxVotes = proposal.optionVotes[i];
                 winningOption = i;
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         proposal.executed = true;
@@ -503,22 +460,28 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
     function batchWithdrawTokens(uint256[] memory proposalIds) external nonReentrant {
         uint256 totalWithdraw = 0;
 
-        for (uint256 i = 0; i < proposalIds.length; ) {
+        for (uint256 i = 0; i < proposalIds.length;) {
             uint256 proposalId = proposalIds[i];
             if (proposalId >= proposalCount) {
-                unchecked { ++i; }
+                unchecked {
+                    ++i;
+                }
                 continue;
             }
 
             Proposal storage proposal = proposals[proposalId];
             if (block.timestamp < proposal.endTime) {
-                unchecked { ++i; }
+                unchecked {
+                    ++i;
+                }
                 continue;
             }
 
             uint256 committedAmount = proposal.tokenCommitments[msg.sender];
             if (committedAmount == 0) {
-                unchecked { ++i; }
+                unchecked {
+                    ++i;
+                }
                 continue;
             }
 
@@ -528,8 +491,10 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
 
             totalWithdraw += committedAmount;
             emit TokensWithdrawn(proposalId, msg.sender, committedAmount);
-            
-            unchecked { ++i; }
+
+            unchecked {
+                ++i;
+            }
         }
 
         if (totalWithdraw > 0) {
@@ -604,11 +569,7 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @dev Get winning option for a proposal
      */
-    function getWinningOption(uint256 proposalId)
-        external
-        view
-        returns (uint256 winningOption, uint256 votes)
-    {
+    function getWinningOption(uint256 proposalId) external view returns (uint256 winningOption, uint256 votes) {
         if (proposalId >= proposalCount) revert InvalidProposal();
 
         Proposal storage proposal = proposals[proposalId];
@@ -616,23 +577,21 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
         winningOption = 0;
         votes = proposal.optionVotes[0];
 
-        for (uint256 i = 1; i < proposal.optionVotes.length; ) {
+        for (uint256 i = 1; i < proposal.optionVotes.length;) {
             if (proposal.optionVotes[i] > votes) {
                 votes = proposal.optionVotes[i];
                 winningOption = i;
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
     /**
      * @dev Get user's token commitment for a proposal
      */
-    function getUserTokenCommitment(uint256 proposalId, address user)
-        external
-        view
-        returns (uint256)
-    {
+    function getUserTokenCommitment(uint256 proposalId, address user) external view returns (uint256) {
         if (proposalId >= proposalCount) revert InvalidProposal();
         return proposals[proposalId].tokenCommitments[user];
     }
@@ -678,10 +637,7 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
      * @param newMinTokens New minimum tokens required
      * @param newMaxTokens New maximum tokens per vote
      */
-    function updateVotingParameters(uint256 newMinTokens, uint256 newMaxTokens)
-        external
-        onlyRole(ADMIN_ROLE)
-    {
+    function updateVotingParameters(uint256 newMinTokens, uint256 newMaxTokens) external onlyRole(ADMIN_ROLE) {
         if (newMinTokens == 0) revert InvalidParameters();
         if (newMaxTokens <= newMinTokens) revert InvalidParameters();
 
@@ -713,7 +669,7 @@ contract QuadraticVoting is AccessControl, ReentrancyGuard, Pausable {
      * Saves ~54 bytes per proposal through tight struct packing
      */
     function _sqrt(uint256 x) internal pure returns (uint256) {
-        if (x >= (2**255)) return 2**128 - 1; // Prevent overflow
+        if (x >= (2 ** 255)) return 2 ** 128 - 1; // Prevent overflow
         if (x == 0) return 0;
 
         // Initial approximation using bit length

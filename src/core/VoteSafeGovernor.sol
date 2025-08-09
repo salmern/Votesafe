@@ -5,7 +5,8 @@ import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import {GovernorVotesQuorumFraction} from
+    "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
@@ -35,11 +36,7 @@ contract VoteSafeGovernor is
     mapping(uint256 => bool) public emergencyProposals;
     bool public paused;
 
-    event EmergencyProposalCreated(
-        uint256 indexed proposalId,
-        address indexed proposer,
-        string reason
-    );
+    event EmergencyProposalCreated(uint256 indexed proposalId, address indexed proposer, string reason);
     event EmergencyPaused(address indexed account);
     event EmergencyUnpaused(address indexed account);
     event ProposalThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
@@ -86,10 +83,7 @@ contract VoteSafeGovernor is
         // _grantRole(adminRole, msg.sender);
         // _grantRole(emergencyRole, msg.sender);
 
-        if (
-            _proposalThresholdBPS > 10000 ||
-            _emergencyProposalThresholdBPS >= _proposalThresholdBPS
-        ) {
+        if (_proposalThresholdBPS > 10000 || _emergencyProposalThresholdBPS >= _proposalThresholdBPS) {
             revert InvalidProposalThreshold();
         }
         qvHandler = QuadraticVotingHandler(_qvHandler);
@@ -136,19 +130,11 @@ contract VoteSafeGovernor is
         bool useQuadraticVoting
     ) public whenNotPaused returns (uint256 proposalId) {
         // Add this check at start of propose()
-        if (
-            targets.length == 0 ||
-            targets.length != values.length ||
-            targets.length != calldatas.length
-        ) {
+        if (targets.length == 0 || targets.length != values.length || targets.length != calldatas.length) {
             revert InvalidProposalInput();
         }
         // Input validation
-        if (
-            targets.length == 0 ||
-            targets.length != values.length ||
-            targets.length != calldatas.length
-        ) {
+        if (targets.length == 0 || targets.length != values.length || targets.length != calldatas.length) {
             revert ArrayLengthMismatch();
         }
 
@@ -167,9 +153,7 @@ contract VoteSafeGovernor is
 
         // Voting power check (gas optimized version)
         uint256 voterPower = getVotes(msg.sender, block.number - 1);
-        uint256 requiredThreshold = (token().getPastTotalSupply(
-            block.number - 1
-        ) * proposalThresholdBPS) / 10000;
+        uint256 requiredThreshold = (token().getPastTotalSupply(block.number - 1) * proposalThresholdBPS) / 10000;
 
         if (voterPower < requiredThreshold) {
             revert InsufficientProposalThreshold();
@@ -194,39 +178,28 @@ contract VoteSafeGovernor is
         emit EmergencyUnpaused(msg.sender);
     }
 
-    function updateProposalThresholds(
-        uint256 newThreshold,
-        uint256 newEmergencyThreshold
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newThreshold > 10000 || newEmergencyThreshold >= newThreshold)
+    function updateProposalThresholds(uint256 newThreshold, uint256 newEmergencyThreshold)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (newThreshold > 10000 || newEmergencyThreshold >= newThreshold) {
             revert InvalidProposalThreshold();
+        }
         emit ProposalThresholdUpdated(proposalThresholdBPS, newThreshold);
         proposalThresholdBPS = newThreshold;
         emergencyProposalThresholdBPS = newEmergencyThreshold;
     }
 
-    function proposalThreshold()
-        public
-        view
-        override(Governor, GovernorSettings)
-        returns (uint256)
-    {
+    function proposalThreshold() public view override(Governor, GovernorSettings) returns (uint256) {
         uint256 totalSupply = token().getPastTotalSupply(block.number - 1);
         return (totalSupply * proposalThresholdBPS) / 10000;
     }
 
-    function votingPeriod()
-        public
-        view
-        override(Governor, GovernorSettings)
-        returns (uint256)
-    {
+    function votingPeriod() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
     }
 
-    function state(
-        uint256 proposalId
-    )
+    function state(uint256 proposalId)
         public
         view
         override(Governor, GovernorTimelockControl)
@@ -235,26 +208,18 @@ contract VoteSafeGovernor is
         return super.state(proposalId);
     }
 
-    function proposalDeadline(
-        uint256 proposalId
-    ) public view override(Governor) returns (uint256) {
-        if (emergencyProposals[proposalId])
+    function proposalDeadline(uint256 proposalId) public view override(Governor) returns (uint256) {
+        if (emergencyProposals[proposalId]) {
             return proposalSnapshot(proposalId) + emergencyVotingPeriod;
+        }
         return super.proposalDeadline(proposalId);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(Governor, AccessControl) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(Governor, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
-    function _executor()
-        internal
-        view
-        override(Governor, GovernorTimelockControl)
-        returns (address)
-    {
+    function _executor() internal view override(Governor, GovernorTimelockControl) returns (address) {
         return super._executor();
     }
 
@@ -274,14 +239,7 @@ contract VoteSafeGovernor is
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal override(Governor, GovernorTimelockControl) returns (uint48) {
-        return
-            super._queueOperations(
-                proposalId,
-                targets,
-                values,
-                calldatas,
-                descriptionHash
-            );
+        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
     function _executeOperations(
@@ -291,18 +249,15 @@ contract VoteSafeGovernor is
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal override(Governor, GovernorTimelockControl) {
-        super._executeOperations(
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            descriptionHash
-        );
+        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
-    function proposalNeedsQueuing(
-        uint256 proposalId
-    ) public view override(Governor, GovernorTimelockControl) returns (bool) {
+    function proposalNeedsQueuing(uint256 proposalId)
+        public
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (bool)
+    {
         return super.proposalNeedsQueuing(proposalId);
     }
 }
