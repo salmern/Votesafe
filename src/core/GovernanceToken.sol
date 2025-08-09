@@ -48,6 +48,11 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     error MintTooSoon();
     error ZeroAddress();
     error ZeroAmount();
+    error ArrayLengthMismatch();
+    error EmptyArrays();
+    error SignatureExpired();
+    error InvalidSignature();
+    error InvalidNonce();
 
     /**
      * @dev Constructor sets up the token with initial parameters
@@ -98,8 +103,8 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      * @param amounts Array of amounts to mint
      */
     function batchMint(address[] calldata recipients, uint256[] calldata amounts) external onlyOwner {
-        if (recipients.length != amounts.length) revert("Arrays length mismatch");
-        if (recipients.length == 0) revert("Empty arrays");
+        if (recipients.length != amounts.length) revert ArrayLengthMismatch();
+        if (recipients.length == 0) revert EmptyArrays();
         if (block.timestamp < lastMintTime + MIN_MINT_INTERVAL) revert MintTooSoon();
 
         uint256 totalAmount = 0;
@@ -150,7 +155,7 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         public
         override
     {
-        if (block.timestamp > expiry) revert("Signature expired");
+        if (block.timestamp > expiry) revert SignatureExpired();
 
         bytes32 domainSeparator = _domainSeparatorV4();
         bytes32 structHash = keccak256(
@@ -162,8 +167,8 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         bytes32 hash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signer = ecrecover(hash, v, r, s);
 
-        if (signer == address(0)) revert("Invalid signature");
-        if (nonce != _useNonce(signer)) revert("Invalid nonce");
+        if (signer == address(0)) revert InvalidSignature();
+        if (nonce != _useNonce(signer)) revert InvalidNonce();
 
         _delegate(signer, delegatee);
     }
@@ -212,31 +217,36 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      * @return Success status
      */
     function transfer(address to, uint256 amount) public override returns (bool) {
-        address owner = _msgSender();
-        _transfer(owner, to, amount);
-
-        // Auto-delegate to self if not already delegated (gas-efficient governance participation)
-        if (delegates(to) == address(0) && balanceOf(to) > 0) {
+        // Check if recipient needs auto-delegation BEFORE transfer
+        bool needsAutoDelegation = (delegates(to) == address(0) && balanceOf(to) == 0);
+        
+        // Perform the transfer
+        bool success = super.transfer(to, amount);
+        
+        // Auto-delegate only for new accounts (had zero balance before transfer)
+        if (success && needsAutoDelegation) {
             _delegate(to, to);
         }
-
-        return true;
+        
+        return success;
     }
 
     /**
      * @dev Gas-efficient transferFrom with automatic delegation
      */
     function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
-        address spender = _msgSender();
-        _spendAllowance(from, spender, amount);
-        _transfer(from, to, amount);
-
-        // Auto-delegate to self if not already delegated
-        if (delegates(to) == address(0) && balanceOf(to) > 0) {
+        // Check if recipient needs auto-delegation BEFORE transfer
+        bool needsAutoDelegation = (delegates(to) == address(0) && balanceOf(to) == 0);
+        
+        // Perform the transfer using parent implementation
+        bool success = super.transferFrom(from, to, amount);
+        
+        // Auto-delegate only for new accounts (had zero balance before transfer)
+        if (success && needsAutoDelegation) {
             _delegate(to, to);
         }
-
-        return true;
+        
+        return success;
     }
 
     /**
@@ -309,22 +319,6 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      * @return lastMintTimestamp The timestamp of the last mint
      * @return owner The owner of the contract
      */
-    // function getTokenInfo()
-    //     external
-    //     view
-    //     returns (
-    //         string memory name,
-    //         string memory symbol,
-    //         uint8 decimals,
-    //         uint256 totalSupply,
-    //         uint256 maxSupply,
-    //         uint256 lastMintTimestamp,
-    //         address owner
-    //     )
-    // {
-    //     return (name, symbol, decimals, totalSupply, MAX_SUPPLY, lastMintTime, owner);
-    // }
-
     function getTokenInfo()
         external
         view

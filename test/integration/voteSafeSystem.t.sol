@@ -16,115 +16,131 @@ contract VoteSafeTest is Test {
     MockQuadraticVotingHandler public handler;
 
     address public admin = address(0xA11CE);
-    address public proposer = address(0xB0B);
     address public voter = address(0xCAF3);
-    address[] public proposers;
-    address[] public executors;
 
     function setUp() public {
-        // Deploy token first
+        // 1. Deploy and setup token
         token = new MockERC20Votes("MockToken", "MTK");
 
         // Mint tokens to voter
-        vm.prank(voter);
         token.mint(voter, 1000 ether);
+        assertEq(token.balanceOf(voter), 1000 ether, "Mint failed");
 
-        // Delegate voting power
+        // Delegate votes
         vm.prank(voter);
         token.delegate(voter);
 
-        // Set up proposers and executors
-        proposers = new address[](1);
-        executors = new address[](1);
+        // Advance blocks to activate voting power
+        vm.roll(block.number + 2);
+        assertGt(token.getVotes(voter), 0, "Voting power not activated");
+
+        // Deploy governance contracts
+        address[] memory proposers = new address[](1);
+        address[] memory executors = new address[](1);
         proposers[0] = address(this);
         executors[0] = address(this);
+        // Redeploy handler with correct governor address
+        handler = new MockQuadraticVotingHandler(address(0));
 
-        // Deploy timelock
-        timelock = new VoteSafeTimelockController(2 days, proposers, executors, admin);
+        timelock = new VoteSafeTimelockController(
+            2 days,
+            proposers,
+            executors,
+            admin
+        );
 
-        // Deploy governor first with placeholder handler
+        // Deploy handler with temporary address
+        // handler = new MockQuadraticVotingHandler(address(this));
+
+
+        // Deploy governor
         vm.startPrank(admin);
         governor = new VoteSafeGovernor(
             IVotes(address(token)),
             timelock,
-            address(0), // Placeholder, will be updated
-            1000,
-            500
+            address(handler),
+            1000, // 10% threshold
+            500 // 5% emergency threshold
         );
+        // Re-assign handler to know about the new governor
+        // handler = new MockQuadraticVotingHandler(address(governor));
+
         vm.stopPrank();
 
-        // Deploy handler with correct governor address
-        handler = new MockQuadraticVotingHandler(address(governor));
-
-        // Update governor's handler (you might need to add a setter function)
-        // For now, we'll work with the constructor approach
-
-        // Alternative: Redeploy governor with correct handler
+        // Setup roles
         vm.startPrank(admin);
-        governor = new VoteSafeGovernor(IVotes(address(token)), timelock, address(handler), 1000, 500);
+        bytes32 executorRole = timelock.EXECUTOR_ROLE();
+        bytes32 proposerRole = timelock.PROPOSER_ROLE();
+        bytes32 adminRole = governor.DEFAULT_ADMIN_ROLE();
+        bytes32 emergencyRole = governor.EMERGENCY_ROLE();
+
+        timelock.grantRole(executorRole, address(governor));
+        timelock.grantRole(proposerRole, address(governor));
+        governor.grantRole(adminRole, admin);
+        governor.grantRole(emergencyRole, admin);
         vm.stopPrank();
 
-        // Grant roles
-        vm.startPrank(admin);
-        timelock.grantRole(timelock.EXECUTOR_ROLE(), address(governor));
-        timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
-
-        governor.grantRole(governor.EMERGENCY_ROLE(), admin);
-        governor.grantRole(governor.DEFAULT_ADMIN_ROLE(), admin);
-        vm.stopPrank();
-
-        // Make sure voting power is delegated and move forward a block
-        vm.prank(voter);
-        token.delegate(voter);
-        vm.roll(block.number + 1);
+        // Final verification
+        assertTrue(governor.hasRole(adminRole, admin), "Admin role not set");
+        assertEq(
+            address(governor.qvHandler()),
+            address(handler),
+            "Handler not set correctly"
+        );
     }
 
     function testProposeWithQuadraticVoting() public {
-        // Move to next block to ensure voting power is available
-        vm.roll(block.number + 1);
+        // Verify voting power
+        uint256 snapshotBlock = block.number - 1;
+        uint256 votes = token.getPastVotes(voter, snapshotBlock);
+        uint256 threshold = governor.proposalThreshold();
 
+        console.log("Voter power:", votes);
+        console.log("Required threshold:", threshold);
+        assertGe(votes, threshold, "Insufficient voting power");
+
+        // Create proposal
         vm.startPrank(voter);
-
-        // Prepare proposal parameters
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
         bytes[] memory calldatas = new bytes[](1);
-
-        // Set up a simple call
         targets[0] = address(token);
-        values[0] = 0;
-        calldatas[0] = abi.encodeWithSignature("transfer(address,uint256)", voter, 1);
+        calldatas[0] = abi.encodeWithSignature(
+            "transfer(address,uint256)",
+            voter,
+            1
+        );
 
         string[] memory options = new string[](2);
         options[0] = "Yes";
         options[1] = "No";
 
-        string memory description = "Should we enable feature X?";
-
-        // Check voter has enough voting power
-        uint256 voterPower = governor.getVotes(voter, block.number - 1);
-        uint256 requiredThreshold = governor.proposalThreshold();
-
-        console.log("Voter power:", voterPower);
-        console.log("Required threshold:", requiredThreshold);
-
-        assertTrue(voterPower >= requiredThreshold, "Voter doesn't have enough voting power");
-
         uint256 proposalId = governor.propose(
             targets,
             values,
             calldatas,
-            description,
+            "QV Proposal",
             options,
-            true // useQuadraticVoting
+            true
         );
 
-        assertTrue(proposalId > 0);
-
+        assertGt(proposalId, 0, "Proposal creation failed");
         vm.stopPrank();
     }
 
-    function testProposeWithoutQuadraticVoting() public {
+    function debugVotingPower() public view {
+        console.log("Current block:", block.number);
+        console.log("Token balance:", token.balanceOf(voter));
+        console.log("Current votes:", token.getVotes(voter));
+        console.log(
+            "Past votes (prev block):",
+            token.getPastVotes(voter, block.number - 1)
+        );
+        console.log("Proposal threshold:", governor.proposalThreshold());
+        console.log("Handler address:", address(governor.qvHandler()));
+    }
+
+       function testProposeWithoutQuadraticVoting() public {
         vm.roll(block.number + 1);
 
         vm.startPrank(voter);
